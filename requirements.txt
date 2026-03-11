@@ -1,0 +1,7 @@
+streamlit
+python-docx
+pywin32-ctypes
+pandas
+numpy
+pyarrow
+Pillow
