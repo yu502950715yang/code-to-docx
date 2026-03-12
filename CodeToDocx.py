@@ -84,7 +84,9 @@ def create_header(section, text):
     创建页眉并设置样式
     """
     header = section.header
+    header.is_linked_to_previous = False
     paragraph = header.paragraphs[0]
+    paragraph.clear()
     paragraph.text = text
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     paragraph.style = 'Header'
@@ -102,7 +104,9 @@ def create_footer(section):
     创建居中的页码页脚
     """
     footer = section.footer
+    footer.is_linked_to_previous = False
     paragraph = footer.paragraphs[0]
+    paragraph.clear()
     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
     run = paragraph.add_run()
     add_page_number(run)
@@ -122,6 +126,9 @@ def collect_files(config):
             ext = os.path.splitext(file)[1].lower()
             if ext in config['extensions']:
                 files_found.append(os.path.join(root, file))
+    
+    # 全局排序，确保所有文件按照路径字母序排列
+    files_found.sort()
     return files_found
 
 def get_all_lines(source_configs):
