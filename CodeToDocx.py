@@ -11,7 +11,7 @@ from docx.oxml import OxmlElement
 # Default configuration for CLI
 DEFAULT_PROJECT_NAME = ""
 DEFAULT_VERSION = ""
-DEFAULT_OUTPUT_FILE = f"《{DEFAULT_PROJECT_NAME}{DEFAULT_VERSION}》程序鉴别材料.docx"
+DEFAULT_OUTPUT_FILE = None
 
 # Source configurations
 DEFAULT_SOURCE_CONFIGS = [
@@ -161,7 +161,7 @@ def safe_save(doc, output_file):
         raise
 
 def generate_docx(max_pages, mode='sequential', project_name=DEFAULT_PROJECT_NAME, 
-                  version=DEFAULT_VERSION, output_file=DEFAULT_OUTPUT_FILE, 
+                  version=DEFAULT_VERSION, output_file=None, 
                   source_configs=DEFAULT_SOURCE_CONFIGS, progress_callback=None,
                   line_numbers=False):
     """
@@ -255,6 +255,8 @@ def generate_docx(max_pages, mode='sequential', project_name=DEFAULT_PROJECT_NAM
             progress_callback(f"已写入 {i}/{total_lines} 行...", progress)
 
     if progress_callback: progress_callback("正在保存文档...", 0.95)
+    if not output_file:
+        output_file = f"《{project_name}{version}》程序鉴别材料.docx"
     output_file = safe_save(doc, output_file)
     print(f"Document saved to: {output_file}")
     if progress_callback: progress_callback("文档生成成功！", 1.0)
@@ -267,7 +269,8 @@ if __name__ == "__main__":
     parser.add_argument('--name', type=str, default=DEFAULT_PROJECT_NAME, help='Project name')
     parser.add_argument('--version', type=str, default=DEFAULT_VERSION, help='Version')
     parser.add_argument('--line-numbers', action='store_true', help='启用页面行号')
+    parser.add_argument('--output', type=str, default=None, help='输出文件名，默认根据项目名与版本生成')
     
     args = parser.parse_args()
     
-    generate_docx(args.pages, args.mode, project_name=args.name, version=args.version, line_numbers=args.line_numbers)
+    generate_docx(args.pages, args.mode, project_name=args.name, version=args.version, output_file=args.output, line_numbers=args.line_numbers)

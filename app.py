@@ -57,7 +57,12 @@ with st.sidebar:
         st.markdown('<div class="align-button-with-label"></div>', unsafe_allow_html=True)
         st.button("📁", key="btn_output_dir", help="选择输出文件夹", on_click=select_folder, args=("output",))
 
-    output_filename = f"《{project_name}{version}》程序鉴别材料.docx"
+    st.header("文件名称")
+    default_filename = f"《{project_name}{version}》程序鉴别材料.docx"
+    output_filename = st.text_input("输出文件名", value=default_filename)
+    if not output_filename:
+        output_filename = default_filename
+    
     output_path = os.path.join(output_dir, output_filename)
 
 # Main area for source configurations
