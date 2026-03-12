@@ -9,22 +9,12 @@ from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
 # Default configuration for CLI
-DEFAULT_PROJECT_NAME = "智慧实验室管控平台"
-DEFAULT_VERSION = "V2.0"
-DEFAULT_OUTPUT_FILE = f"e:\\code\\代码提取工具\\《{DEFAULT_PROJECT_NAME}{DEFAULT_VERSION}》程序鉴别材料.docx"
+DEFAULT_PROJECT_NAME = ""
+DEFAULT_VERSION = ""
+DEFAULT_OUTPUT_FILE = f"《{DEFAULT_PROJECT_NAME}{DEFAULT_VERSION}》程序鉴别材料.docx"
 
 # Source configurations
 DEFAULT_SOURCE_CONFIGS = [
-    {
-        "name": "Java后端项目",
-        "path": r"E:\code\19222-【吉林工商】智慧实验室管理平台二期\jlgs_zhsyseq_v211_ua_ruoyi_cloud_business\chenrise-modules\chenrise-device",
-        "extensions": [".java"]
-    },
-    {
-        "name": "前端项目",
-        "path": r"E:\code\19222-【吉林工商】智慧实验室管理平台二期\jlgs_zhsyseq_v211_ua_ruoyi_vue_business",
-        "extensions": [".vue"]
-    }
 ]
 
 LINES_PER_PAGE = 50 # Estimate for 12pt line spacing + margins
