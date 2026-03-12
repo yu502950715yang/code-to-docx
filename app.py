@@ -39,6 +39,7 @@ with st.sidebar:
     max_pages = st.number_input("目标页数", min_value=1, max_value=200, value=60)
     mode = st.selectbox("生成模式", ["start_end", "sequential"], 
                         format_func=lambda x: "前后各半 (start_end)" if x == "start_end" else "连续读取 (sequential)")
+    line_numbers = st.checkbox("页面行号", value=True, help="在 Word 文档页面左侧显示行号")
     
     # 输出目录选择
     if "path_output" not in st.session_state:
@@ -161,7 +162,8 @@ if st.button("🚀 开始生成文档", type="primary", use_container_width=True
                 version=version,
                 output_file=output_path,
                 source_configs=updated_configs,
-                progress_callback=update_progress
+                progress_callback=update_progress,
+                line_numbers=line_numbers
             )
             end_time = time.time()
             
@@ -171,7 +173,7 @@ if st.button("🚀 开始生成文档", type="primary", use_container_width=True
             with open(result_path, "rb") as f:
                 st.download_button(
                     label="📥 点击下载生成的文档",
-                    data=f,
+                    data=f.read(),
                     file_name=output_filename,
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 )

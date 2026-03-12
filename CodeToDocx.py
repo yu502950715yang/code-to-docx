@@ -4,6 +4,7 @@ import docx
 import argparse
 from docx.shared import Pt, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.section import WD_SECTION
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
 
@@ -39,6 +40,36 @@ def set_font_style(run, font_name='Consolas', size=10):
     rFonts = rPr.get_or_add_rFonts()
     rFonts.set(qn('w:eastAsia'), '宋体')
 
+def set_line_numbering(section, enable=True, count_by=1, start=1, restart='newPage'):
+    """
+    开启/关闭页面行号（Word 行号），支持每页重启
+    """
+    sect_pr = section._sectPr
+    if enable:
+        ln = OxmlElement('w:lnNumType')
+        ln.set(qn('w:countBy'), str(count_by))
+        ln.set(qn('w:start'), str(start))
+        ln.set(qn('w:restart'), restart)
+        # 确保只存在一个行号设置：先移除已有，再添加
+        for child in list(sect_pr):
+            if child.tag.endswith('lnNumType'):
+                sect_pr.remove(child)
+        sect_pr.append(ln)
+    else:
+        for child in list(sect_pr):
+            if child.tag.endswith('lnNumType'):
+                sect_pr.remove(child)
+def suppress_line_numbers_for_paragraph(paragraph, suppress=True):
+    p = paragraph._element
+    pPr = p.get_or_add_pPr()
+    # 移除已存在的设置
+    for child in list(pPr):
+        if child.tag.endswith('suppressLineNumbers'):
+            pPr.remove(child)
+    if suppress:
+        sup = OxmlElement('w:suppressLineNumbers')
+        pPr.append(sup)
+
 def add_page_number(run):
     """
     向页脚添加页码字段
@@ -50,20 +81,12 @@ def add_page_number(run):
     instrText.set(qn('xml:space'), 'preserve')
     instrText.text = "PAGE"
 
-    fldChar2 = OxmlElement('w:fldChar')
-    fldChar2.set(qn('w:fldCharType'), 'separate')
-
-    fldChar3 = OxmlElement('w:t')
-    fldChar3.text = "2"
-
     fldChar4 = OxmlElement('w:fldChar')
     fldChar4.set(qn('w:fldCharType'), 'end')
 
     r_element = run._element
     r_element.append(fldChar1)
     r_element.append(instrText)
-    r_element.append(fldChar2)
-    r_element.append(fldChar3)
     r_element.append(fldChar4)
 
 def create_header(section, text):
@@ -130,9 +153,27 @@ def get_all_lines(source_configs):
                 pass
     return all_lines
 
+def safe_save(doc, output_file):
+    try:
+        doc.save(output_file)
+        return output_file
+    except PermissionError:
+        base, ext = os.path.splitext(output_file)
+        i = 1
+        while i <= 50:
+            alt = f"{base}_副本{i}{ext}"
+            try:
+                doc.save(alt)
+                print(f"Permission denied. Saved to: {alt}")
+                return alt
+            except PermissionError:
+                i += 1
+        raise
+
 def generate_docx(max_pages, mode='sequential', project_name=DEFAULT_PROJECT_NAME, 
                   version=DEFAULT_VERSION, output_file=DEFAULT_OUTPUT_FILE, 
-                  source_configs=DEFAULT_SOURCE_CONFIGS, progress_callback=None):
+                  source_configs=DEFAULT_SOURCE_CONFIGS, progress_callback=None,
+                  line_numbers=False):
     """
     生成 Word 文档
     """
@@ -166,8 +207,25 @@ def generate_docx(max_pages, mode='sequential', project_name=DEFAULT_PROJECT_NAM
     rPr = r.get_or_add_rPr()
     rFonts = rPr.get_or_add_rFonts()
     rFonts.set(qn('w:eastAsia'), '黑体')
+    if line_numbers:
+        suppress_line_numbers_for_paragraph(title_p, True)
     
-    doc.add_page_break()
+    # 新建第二节，首页不显示行号；第二节根据开关显示行号
+    new_section = doc.add_section(WD_SECTION.NEW_PAGE)
+    # 复制页面设置
+    new_section.page_height = section.page_height
+    new_section.page_width = section.page_width
+    new_section.top_margin = section.top_margin
+    new_section.bottom_margin = section.bottom_margin
+    new_section.left_margin = section.left_margin
+    new_section.right_margin = section.right_margin
+    new_section.header_distance = section.header_distance
+    new_section.footer_distance = section.footer_distance
+    # 设置第二节的页眉页脚与行号
+    create_header(new_section, header_text)
+    create_footer(new_section)
+    if line_numbers:
+        set_line_numbering(new_section, enable=True, count_by=1, start=0, restart='newPage')
 
     # Content Processing
     if progress_callback: progress_callback("正在收集代码行...", 0.1)
@@ -207,7 +265,7 @@ def generate_docx(max_pages, mode='sequential', project_name=DEFAULT_PROJECT_NAM
             progress_callback(f"已写入 {i}/{total_lines} 行...", progress)
 
     if progress_callback: progress_callback("正在保存文档...", 0.95)
-    doc.save(output_file)
+    output_file = safe_save(doc, output_file)
     print(f"Document saved to: {output_file}")
     if progress_callback: progress_callback("文档生成成功！", 1.0)
     return output_file
@@ -218,7 +276,8 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='start_end', choices=['sequential', 'start_end'], help='Generation mode')
     parser.add_argument('--name', type=str, default=DEFAULT_PROJECT_NAME, help='Project name')
     parser.add_argument('--version', type=str, default=DEFAULT_VERSION, help='Version')
+    parser.add_argument('--line-numbers', action='store_true', help='启用页面行号')
     
     args = parser.parse_args()
     
-    generate_docx(args.pages, args.mode, project_name=args.name, version=args.version)
+    generate_docx(args.pages, args.mode, project_name=args.name, version=args.version, line_numbers=args.line_numbers)
